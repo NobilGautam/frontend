@@ -16,6 +16,11 @@ import axios, { Axios } from "axios";
 import FormModal from "./FormModal";
 import EntryCard from "./EntryCard";
 import { useCredContext } from "../context/Credentials";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { CgProfile } from "react-icons/cg";
+import { LuLogOut } from "react-icons/lu";
+
 
 export const Example = () => {
   return (
@@ -49,44 +54,15 @@ const Sidebar = () => {
           open={open}
         />
         <Option
-          Icon={FiDollarSign}
-          title="Sales"
-          selected={selected}
-          setSelected={setSelected}
-          open={open}
-          notifs={3}
-        />
-        <Option
-          Icon={FiMonitor}
-          title="View Site"
+          Icon={CgProfile}
+          title="Profile"
           selected={selected}
           setSelected={setSelected}
           open={open}
         />
         <Option
-          Icon={FiShoppingCart}
-          title="Products"
-          selected={selected}
-          setSelected={setSelected}
-          open={open}
-        />
-        <Option
-          Icon={FiTag}
-          title="Tags"
-          selected={selected}
-          setSelected={setSelected}
-          open={open}
-        />
-        <Option
-          Icon={FiBarChart}
-          title="Analytics"
-          selected={selected}
-          setSelected={setSelected}
-          open={open}
-        />
-        <Option
-          Icon={FiUsers}
-          title="Members"
+          Icon={LuLogOut}
+          title="Logout"
           selected={selected}
           setSelected={setSelected}
           open={open}
@@ -227,6 +203,8 @@ const ToggleClose = ({ open, setOpen }) => {
 
 const ExampleContent = () => {
   const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const { credentials } = useCredContext();
 
@@ -234,47 +212,93 @@ const ExampleContent = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    filterEntriesByDate();
+  }, [data, selectedDate]);
+
   const fetchData = async () => {
     try {
-      const authHeader = `Basic ${localStorage.getItem("AUTH_KEY")}`;
-      console.log(authHeader)
+      const authHeader = `Basic ${localStorage.getItem('AUTH_KEY')}`;
+      console.log(authHeader);
       const response = await axios.get('http://localhost:8080/journal', {
         headers: {
           Authorization: authHeader,
         },
       });
+      console.log(response.data);
       setData(response.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
   };
 
+  const filterEntriesByDate = () => {
+    const formattedDate = selectedDate.toISOString().split('T')[0];
+    const filtered = data.filter((entry) => entry.date.startsWith(formattedDate));
+    setFilteredData(filtered);
+  };
+
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+  };
+
+  const navigateDate = (direction) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(selectedDate.getDate() + direction);
+    setSelectedDate(newDate);
+  };
+
   return (
-    <div className="h-[200vh] w-full p-10">
-<div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">CRUD Operations</h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-secondary text-white px-4 py-2 rounded shadow hover:bg-red-500"
-        >
-          Add Item
-        </button>
-      </div>
-      <div className="w-[80%] flex gap-4">
-        {data.map((entry) => (
-          <EntryCard
-            key={entry.id} // Use a unique key, such as the id
-            title={entry.title}
-            content={entry.content}
-            date={entry.date}
-            sentiment={entry.sentiment}
+    <div className="h-[100vh] w-full p-10 bg-[#f2f2f3]">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">{selectedDate.toDateString()}</h2>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigateDate(-1)}
+            className="bg-secondary text-white px-4 py-2 rounded shadow hover:bg-red-500"
+          >
+            &lt; Previous
+          </button>
+          <DatePicker
+            selected={selectedDate}
+            onChange={handleDateChange}
+            className="border px-4 py-2 rounded shadow"
           />
-        ))}
-        <div onClick={() => setShowModal(true)} className='flex flex-col justify-center items-center w-[25%] bg-slate-500 p-4 pb-6 gap-4 rounded-lg hover:cursor-pointer'>
-          <FaPlusCircle className="text-[4rem]"/>
+          <button
+            onClick={() => navigateDate(1)}
+            className="bg-secondary text-white px-4 py-2 rounded shadow hover:bg-red-500"
+          >
+            Next &gt;
+          </button>
+        </div>
+      </div>
+
+      <div className="w-[90%] flex flex-wrap gap-4">
+        {filteredData.length > 0 ? (
+          filteredData.map((entry) => (
+            
+            <EntryCard
+              key={entry.id}
+              id = {entry.id}
+              title={entry.title}
+              content={entry.content}
+              date={entry.date}
+              sentiment={entry.sentiment}
+            />
+          ))
+        ) : (
+          <p className="text-xl text-gray-500">No Journal entries for this day</p>
+        )}
+        <div
+          onClick={() => setShowModal(true)}
+          className="flex flex-col justify-center items-center w-[22%] h-[300px] shadow-md bg-white p-4 pb-6 gap-4 rounded-lg hover:cursor-pointer"
+        >
+          <FaPlusCircle className="text-[4rem]" />
         </div>
       </div>
       {showModal && <FormModal closeModal={() => setShowModal(false)} />}
-  </div>
-  )
-}
+    </div>
+  );
+};
+
+export default ExampleContent;
